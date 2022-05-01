@@ -61,6 +61,14 @@ int main()
         it->second->printContent();
         cout << '\n';
     }
-    
+    double max = 100.f;
+    cout << "RQ: " << max << endl;
+    myKDTree.range_query(max,key);
+    for (std::map<double,Point<N,int>*>::iterator it=myKDTree.rq.begin(); it!=myKDTree.rq.end(); ++it)
+    {    
+        std::cout << it->first << " => ";
+        it->second->printContent();
+        cout << '\n';
+    }
     return 0;
 }

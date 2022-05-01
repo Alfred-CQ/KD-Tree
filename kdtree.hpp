@@ -13,6 +13,7 @@
         private:
 
             void nearest_neighbor(Node<N,ElemType>*,size_t,Point<N,ElemType>&, Node<N,ElemType>* &candidate_node = nullptr, double best_distance = std::numeric_limits<double>::infinity());
+            void k_nearest_neighbor(Node<N,ElemType>*,size_t,Point<N,ElemType>&,map<double, Point<N,ElemType>*>&, size_t k,double best_distance = std::numeric_limits<double>::infinity());
 
             
 
@@ -23,6 +24,7 @@
 
             typedef pair<double, Point<N,ElemType>*> pa;
             map<double, Point<N,ElemType>*> knn;
+            map<double, Point<N,ElemType>*> rq;
             /* Constructor and destructor */
             KDTree  ();
             ~KDTree ();
@@ -30,15 +32,16 @@
             /* Main functions */
             //typedef Node<N,ElemType> TNode;
             bool find(Node<N,ElemType>**&, Point<N,ElemType>&, size_t &level);
-            
             bool insert (Point<N,ElemType>&);
-            void del    (Point<N,ElemType>&);
+            bool del    (Point<N,ElemType>&);
+
             void clean  (Node<N,ElemType>*);
 
-            double nearest_neighbor(Point<N,ElemType>&, Node<N,ElemType>* &node = nullptr);
-            
+            double nearest_neighbor(Point<N,ElemType>&, Node<N,ElemType>* &node = nullptr);   
             void k_nearest_neighbor(size_t,Point<N,ElemType>&);
-            void k_nearest_neighbor(Node<N,ElemType>*,size_t,Point<N,ElemType>&,map<double, Point<N,ElemType>*>&, size_t k,double best_distance = std::numeric_limits<double>::infinity());
+            
+            void range_query(double,Point<N,ElemType>&);
+            void range_query(Node<N,ElemType>*,size_t,Point<N,ElemType>&,map<double, Point<N,ElemType>*>&, double);
 
             /* Getters */
             size_t get_size()         const;
@@ -122,6 +125,28 @@
     }
 
     template <std::size_t N, typename ElemType>
+    bool  KDTree<N, ElemType>::del(Point<N,ElemType>& point)
+    {
+        size_t currLevel;
+        Node<N,ElemType>** current_Node;
+
+        if (!find(current_Node,point, currLevel)) return 0;
+
+        if ((*current_Node)->m_nodes[0] && (*current_Node)->m_nodes[1]) 
+        {
+            Node<N,ElemType>* q = nullptr;//getChange(p);
+            (*current_Node)->m_point = (*q)->m_point;
+            current_Node = q;
+        }
+
+        Node<N,ElemType>* t = *current_Node;
+        *current_Node = (*current_Node)->m_nodes[!(*current_Node)->m_nodes[0]];
+        delete t;
+
+        return 1;
+    }
+
+    template <std::size_t N, typename ElemType>
     double KDTree<N, ElemType>::nearest_neighbor(Point<N,ElemType>& key, Node<N,ElemType>* &node)
     {
         nearest_neighbor(m_root,0,key,node);
@@ -181,7 +206,6 @@
     
     template <std::size_t N, typename ElemType>
     void KDTree<N, ElemType>::k_nearest_neighbor(   Node<N,ElemType>* current_node,
-    
                                                     size_t depth,
                                                     Point<N,ElemType>& key,
                                                     map<double, Point<N,ElemType>*>& myMap,
@@ -236,5 +260,43 @@
         }
     }
 
+    template <std::size_t N, typename ElemType>
+    void KDTree<N, ElemType>::range_query(double max,Point<N,ElemType>& key)
+    {
+        range_query(m_root,0,key,rq,max);
+    }
+
+    template <std::size_t N, typename ElemType>
+    void KDTree<N, ElemType>::range_query(Node<N,ElemType>* current_node,size_t depth,Point<N,ElemType>& key,map<double, Point<N,ElemType>*>& myMap, double max)
+    {
+         if (!current_node)
+            return;
+        
+        if (euclideanDistance(current_node->m_point, key) < max)
+            myMap.insert(make_pair(euclideanDistance(current_node->m_point, key),&current_node->m_point));
+           
+     
+        int axis = depth % m_dimension;
+        bool right = false;
+        
+        if (key[axis] < current_node->m_point[axis]) 
+        {
+            right = true;
+            range_query(current_node->m_nodes[0], ++depth, key, myMap,max);
+        } 
+        else 
+        {
+            right = false;
+            range_query(current_node->m_nodes[1], ++depth, key, myMap,max);
+        }
+
+        if (fabs(current_node->m_point[axis] - key[axis]) < max) 
+        {
+            if (right)
+                range_query(current_node->m_nodes[0], ++depth, key, myMap,max);
+            else
+                range_query(current_node->m_nodes[1], ++depth, key, myMap,max);
+        }
+    }
 
 #endif
