@@ -163,16 +163,16 @@
 
     /** Implementation - Adicional **/
     template <size_t N, typename ElemType>
-    int euclideanDistance(Point<N,ElemType>& x, Point<N,ElemType>& y)
+    double euclideanDistance(Point<N,ElemType>& x, Point<N,ElemType>& y)
     {
-        int distance = 0;
+        double distance = 0.f;
 
         for (size_t i = 0; i < N; ++i)
         {
             distance +=  ((x[i] - y[i])*(x[i] - y[i])); 
             
         }
-        distance = round( sqrt( distance ) );
+        distance = sqrt( distance );
         return distance;
     }
 

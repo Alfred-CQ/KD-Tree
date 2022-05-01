@@ -1,7 +1,16 @@
+/*
+ * Node KDTree
+ * Chillitupa Quispihuanca, Alfred Addison
+ * Estructuras de Datos Avanzadas
+ * CCOMP6-1
+ * C++
+ * Node.hpp
+*/
+
 #ifndef _NODE_HPP_
     #define _NODE_HPP_
 
-    #include "point.hpp"
+    #include "Point.hpp"
 
     template <size_t N, typename ElemType>
     class Node {

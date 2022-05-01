@@ -3,17 +3,26 @@
     #include "node.hpp"
     #include <iostream>
     #include <limits>
+    #include <map>
+    #include <utility>
+
+
     using namespace std;
     template <size_t N, typename ElemType>
     class KDTree {
         private:
-            
+
+            void nearest_neighbor(Node<N,ElemType>*,size_t,Point<N,ElemType>&, Node<N,ElemType>* &candidate_node = nullptr, double best_distance = std::numeric_limits<double>::infinity());
+
             
 
         public:
             Node<N,ElemType>* m_root = nullptr;
             size_t m_size;
             size_t m_dimension;
+
+            typedef pair<double, Point<N,ElemType>*> pa;
+            map<double, Point<N,ElemType>*> knn;
             /* Constructor and destructor */
             KDTree  ();
             ~KDTree ();
@@ -26,10 +35,11 @@
             void del    (Point<N,ElemType>&);
             void clean  (Node<N,ElemType>*);
 
-            void nearest_neighbor(size_t,Point<N,ElemType>&);
-            void nearest_neighbor(Node<N,ElemType>*,size_t,Point<N,ElemType>&, Node<N,ElemType>* &candidate_node = nullptr, double best_distance = std::numeric_limits<double>::infinity());
-
+            double nearest_neighbor(Point<N,ElemType>&, Node<N,ElemType>* &node = nullptr);
             
+            void k_nearest_neighbor(size_t,Point<N,ElemType>&);
+            void k_nearest_neighbor(Node<N,ElemType>*,size_t,Point<N,ElemType>&,map<double, Point<N,ElemType>*>&, size_t k,double best_distance = std::numeric_limits<double>::infinity());
+
             /* Getters */
             size_t get_size()         const;
             size_t get_dimension()    const;
@@ -111,6 +121,13 @@
         return 1;
     }
 
+    template <std::size_t N, typename ElemType>
+    double KDTree<N, ElemType>::nearest_neighbor(Point<N,ElemType>& key, Node<N,ElemType>* &node)
+    {
+        nearest_neighbor(m_root,0,key,node);
+        return euclideanDistance(node->m_point,key);
+    }
+
 
     template <std::size_t N, typename ElemType>
     void KDTree<N, ElemType>::nearest_neighbor( 
@@ -151,6 +168,73 @@
             else
                 nearest_neighbor(current_node->m_nodes[1], ++depth,key,  candidate_node, best_distance);
         }
+
     }
+
+
+
+    template <std::size_t N, typename ElemType>
+    void KDTree<N, ElemType>::k_nearest_neighbor(size_t k, Point<N,ElemType>& key)
+    {
+        k_nearest_neighbor(m_root,0,key,knn,k);
+    }
+    
+    template <std::size_t N, typename ElemType>
+    void KDTree<N, ElemType>::k_nearest_neighbor(   Node<N,ElemType>* current_node,
+    
+                                                    size_t depth,
+                                                    Point<N,ElemType>& key,
+                                                    map<double, Point<N,ElemType>*>& myMap,
+                                                    size_t k,
+                                                    double best_distance)
+    {
+        if (!current_node)
+            return;
+        
+        if (euclideanDistance(current_node->m_point, key) < best_distance)
+        {
+            best_distance = euclideanDistance(current_node->m_point, key);
+           
+            if(myMap.size() < k)
+                myMap.insert(make_pair(euclideanDistance(current_node->m_point, key),&current_node->m_point));
+            else
+            {
+                auto beg = myMap.begin();
+                auto end = myMap.end();
+
+                if (beg->first > best_distance)
+                {
+                    end--;
+                    myMap.erase(end);
+                    myMap.insert(make_pair(euclideanDistance(current_node->m_point, key),&current_node->m_point));
+            
+                }
+                
+            }
+        }
+     
+        int axis = depth % m_dimension;
+        bool right = false;
+        
+        if (key[axis] < current_node->m_point[axis]) 
+        {
+            right = true;
+            k_nearest_neighbor(current_node->m_nodes[0], ++depth, key, myMap,k,best_distance);
+        } 
+        else 
+        {
+            right = false;
+            k_nearest_neighbor(current_node->m_nodes[1], ++depth, key, myMap,k,best_distance);
+        }
+
+        if (fabs(current_node->m_point[axis] - key[axis]) < best_distance) 
+        {
+            if (right)
+                k_nearest_neighbor(current_node->m_nodes[0], ++depth, key, myMap,k,best_distance);
+            else
+                k_nearest_neighbor(current_node->m_nodes[1], ++depth, key, myMap,k,best_distance);
+        }
+    }
+
 
 #endif
