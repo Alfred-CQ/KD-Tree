@@ -13,6 +13,7 @@
     #include <iostream>
 
     #include <math.h>
+    
     template <std::size_t N, typename ElemType>
     class Point{
         
@@ -54,7 +55,7 @@
     template <size_t N, typename ElemType>
     Point<N, ElemType>::Point()
     { 
-        int i;
+        std::size_t i;
         for ( i = 0; i < m_size; ++i)
             m_coordinates[i] = 0;
     }
@@ -62,7 +63,7 @@
     template <size_t N, typename ElemType>
     Point<N, ElemType>::Point(ElemType coordinates[])
     { 
-        int i;
+        std::size_t i;
         for ( i = 0; i < m_size; ++i)
             m_coordinates[i] = coordinates[i];
     }
@@ -100,7 +101,7 @@
     template <size_t N, typename ElemType>
     bool Point<N, ElemType>::operator == (const Point<N,ElemType>& point) 
     {
-        int i;
+        std::size_t i;
 
         for ( i = 0; i < m_size; ++i)
             if (m_coordinates[i] != point[i])
@@ -121,7 +122,7 @@
         if (*this == point)
             return *this;
         
-        size_t i;
+        std::size_t i;
         for ( i = 0; i < m_size; ++i)
             m_coordinates[i] = point[i];
 
@@ -153,7 +154,7 @@
     template <size_t N, typename ElemType>
     void Point<N, ElemType>::printContent()
     { 
-        int i;
+        std::size_t i;
         
         std::cout << "{ ";
         for ( i = 0; i < m_size; ++i)
@@ -166,12 +167,11 @@
     double euclideanDistance(Point<N,ElemType>& x, Point<N,ElemType>& y)
     {
         double distance = 0.f;
+        std::size_t i;
 
-        for (size_t i = 0; i < N; ++i)
-        {
+        for (i = 0; i < N; ++i)
             distance +=  ((x[i] - y[i])*(x[i] - y[i])); 
             
-        }
         distance = sqrt( distance );
         return distance;
     }

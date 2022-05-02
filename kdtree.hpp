@@ -1,76 +1,77 @@
+/*
+ * KDTree
+ * Chillitupa Quispihuanca, Alfred Addison
+ * Estructuras de Datos Avanzadas
+ * CCOMP6-1
+ * C++
+ * KDTree.hpp
+*/
 #ifndef _KDTREE_HPP_
     #define _KDTREE_HPP_
-    #include "node.hpp"
-    #include <iostream>
+    #include "Node.hpp"
+    
     #include <limits>
     #include <map>
     #include <utility>
 
-
-    using namespace std;
-    template <size_t N, typename ElemType>
+    template <std::size_t N, typename ElemType>
     class KDTree {
         private:
 
-            void nearest_neighbor(Node<N,ElemType>*,size_t,Point<N,ElemType>&, Node<N,ElemType>* &candidate_node = nullptr, double best_distance = std::numeric_limits<double>::infinity());
-            void k_nearest_neighbor(Node<N,ElemType>*,size_t,Point<N,ElemType>&,map<double, Point<N,ElemType>*>&, size_t k,double best_distance = std::numeric_limits<double>::infinity());
+            Node<N,ElemType>* m_root = nullptr;
+            std::size_t m_size;
+            std::size_t m_dimension;
 
-            
+            void nearest_neighbor(Node<N,ElemType>*,std::size_t,Point<N,ElemType>&, Node<N,ElemType>* &candidate_node = nullptr, double best_distance = std::numeric_limits<double>::infinity());
+            void k_nearest_neighbor(Node<N,ElemType>*,std::size_t,Point<N,ElemType>&,std::map<double, Point<N,ElemType>*>&, std::size_t,double best_distance = std::numeric_limits<double>::infinity());
+            void range_query(Node<N,ElemType>*,std::size_t,Point<N,ElemType>&,std::map<double, Point<N,ElemType>*>&, double);    
 
         public:
-            Node<N,ElemType>* m_root = nullptr;
-            size_t m_size;
-            size_t m_dimension;
+           
+            std::map<double, Point<N,ElemType>*> knn;
+            std::map<double, Point<N,ElemType>*> rq;
 
-            typedef pair<double, Point<N,ElemType>*> pa;
-            map<double, Point<N,ElemType>*> knn;
-            map<double, Point<N,ElemType>*> rq;
             /* Constructor and destructor */
             KDTree  ();
             ~KDTree ();
 
             /* Main functions */
-            //typedef Node<N,ElemType> TNode;
-            bool find(Node<N,ElemType>**&, Point<N,ElemType>&, size_t &level);
+            bool find(Node<N,ElemType>**&, Point<N,ElemType>&, std::size_t &level);
             bool insert (Point<N,ElemType>&);
             bool del    (Point<N,ElemType>&);
 
             void clean  (Node<N,ElemType>*);
 
             double nearest_neighbor(Point<N,ElemType>&, Node<N,ElemType>* &node = nullptr);   
-            void k_nearest_neighbor(size_t,Point<N,ElemType>&);
-            
+            void k_nearest_neighbor(std::size_t,Point<N,ElemType>&);
             void range_query(double,Point<N,ElemType>&);
-            void range_query(Node<N,ElemType>*,size_t,Point<N,ElemType>&,map<double, Point<N,ElemType>*>&, double);
-
+           
             /* Getters */
-            size_t get_size()         const;
-            size_t get_dimension()    const;
-            size_t get_numberPoints() const;
-            
+            std::size_t get_size()         const;
+            std::size_t get_dimension()    const;
+            Node<N,ElemType>* get_root()   const;
+            Node<N,ElemType>** get_change(Node<N,ElemType>**);
             
             /* Utilities */
             bool is_empty();
-            // Printers
-            void print_Contains();
-            
             
             /* Overloads */
 
     };
 
 
-    template <size_t N, typename ElemType>
+    template <std::size_t N, typename ElemType>
     KDTree<N, ElemType>::KDTree() : m_root(nullptr), m_size(0), m_dimension(N) { }
 
-    template <size_t N, typename ElemType>
+    template <std::size_t N, typename ElemType>
     KDTree<N, ElemType>::~KDTree()
     {
         clean(m_root);
     }
 
     template <std::size_t N, typename ElemType>
-    void KDTree<N, ElemType>::clean( Node<N,ElemType>* currNode) {
+    void KDTree<N, ElemType>::clean( Node<N,ElemType>* currNode) 
+    {
         if (currNode == NULL) return;
        
         clean(currNode->m_nodes[0]);
@@ -80,27 +81,51 @@
     }
 
     template <std::size_t N, typename ElemType>
-    std::size_t KDTree<N, ElemType>::get_dimension() const {
+    std::size_t KDTree<N, ElemType>::get_dimension() const 
+    {
         return N;
     }
 
     template <std::size_t N, typename ElemType>
-    std::size_t KDTree<N, ElemType>::get_size() const {
+    std::size_t KDTree<N, ElemType>::get_size() const 
+    {
         return m_size;
     }
 
     template <std::size_t N, typename ElemType>
-    bool KDTree<N, ElemType>::is_empty() {
+    Node<N,ElemType>*KDTree<N, ElemType>::get_root() const 
+    {
+        return m_root;
+    }
+
+    template <std::size_t N, typename ElemType>
+    Node<N,ElemType>** KDTree<N, ElemType>::get_change(Node<N,ElemType>** node)
+    {
+        Node<N,ElemType>** leftMax = &((*node)->m_nodes[0]);
+        Node<N,ElemType>** rightMin = &((*node)->m_nodes[1]);
+
+        while((*leftMax)->m_nodes[1] && (*rightMin)->m_nodes[0])
+        {
+            leftMax = &((*leftMax)->m_nodes[1]);
+            rightMin = &((*rightMin)->m_nodes[0]);
+        }
+
+        return (!!(*leftMax))? leftMax : rightMin;
+    }
+
+    template <std::size_t N, typename ElemType>
+    bool KDTree<N, ElemType>::is_empty() 
+    {
         return (m_size == 0);
     }
 
     template <std::size_t N, typename ElemType>
     bool KDTree<N, ElemType>::find( Node<N,ElemType>**  &current_Node,
                                     Point<N,ElemType>& point,
-                                    size_t& level )
+                                    std::size_t& level )
     {
         current_Node = &m_root;
-        size_t current_level = -1;
+        std::size_t current_level = -1;
         for (  current_Node = &m_root; 
               *current_Node && (*current_Node)->m_point != point;
                current_level = (*current_Node)->m_level,
@@ -112,7 +137,7 @@
     template <std::size_t N, typename ElemType>
     bool  KDTree<N, ElemType>::insert(Point<N,ElemType>& point)
     {
-        size_t currLevel;
+        std::size_t currLevel;
         Node<N,ElemType>** current_Node;
 
         if (find(current_Node,point, currLevel)) return 0;
@@ -127,15 +152,16 @@
     template <std::size_t N, typename ElemType>
     bool  KDTree<N, ElemType>::del(Point<N,ElemType>& point)
     {
-        size_t currLevel;
+        std::size_t currLevel;
         Node<N,ElemType>** current_Node;
 
         if (!find(current_Node,point, currLevel)) return 0;
 
         if ((*current_Node)->m_nodes[0] && (*current_Node)->m_nodes[1]) 
         {
-            Node<N,ElemType>* q = nullptr;//getChange(p);
+            Node<N,ElemType>** q = get_change(current_Node);
             (*current_Node)->m_point = (*q)->m_point;
+            
             current_Node = q;
         }
 
@@ -157,7 +183,7 @@
     template <std::size_t N, typename ElemType>
     void KDTree<N, ElemType>::nearest_neighbor( 
                                         Node<N,ElemType>* current_node,
-                                        size_t depth,
+                                        std::size_t depth,
                                         Point<N,ElemType>& key,
                                         Node<N,ElemType>* &candidate_node,
                                         double best_distance)
@@ -199,17 +225,17 @@
 
 
     template <std::size_t N, typename ElemType>
-    void KDTree<N, ElemType>::k_nearest_neighbor(size_t k, Point<N,ElemType>& key)
+    void KDTree<N, ElemType>::k_nearest_neighbor(std::size_t k, Point<N,ElemType>& key)
     {
         k_nearest_neighbor(m_root,0,key,knn,k);
     }
     
     template <std::size_t N, typename ElemType>
     void KDTree<N, ElemType>::k_nearest_neighbor(   Node<N,ElemType>* current_node,
-                                                    size_t depth,
+                                                    std::size_t depth,
                                                     Point<N,ElemType>& key,
-                                                    map<double, Point<N,ElemType>*>& myMap,
-                                                    size_t k,
+                                                    std::map<double, Point<N,ElemType>*>& myMap,
+                                                    std::size_t k,
                                                     double best_distance)
     {
         if (!current_node)
@@ -220,7 +246,7 @@
             best_distance = euclideanDistance(current_node->m_point, key);
            
             if(myMap.size() < k)
-                myMap.insert(make_pair(euclideanDistance(current_node->m_point, key),&current_node->m_point));
+                myMap.insert(std::make_pair(euclideanDistance(current_node->m_point, key),&current_node->m_point));
             else
             {
                 auto beg = myMap.begin();
@@ -230,7 +256,7 @@
                 {
                     end--;
                     myMap.erase(end);
-                    myMap.insert(make_pair(euclideanDistance(current_node->m_point, key),&current_node->m_point));
+                    myMap.insert(std::make_pair(euclideanDistance(current_node->m_point, key),&current_node->m_point));
             
                 }
                 
@@ -267,13 +293,18 @@
     }
 
     template <std::size_t N, typename ElemType>
-    void KDTree<N, ElemType>::range_query(Node<N,ElemType>* current_node,size_t depth,Point<N,ElemType>& key,map<double, Point<N,ElemType>*>& myMap, double max)
+    void KDTree<N, ElemType>::range_query(  Node<N,ElemType>* current_node,
+                                            std::size_t depth,
+                                            Point<N,ElemType>& key,
+                                            std::map<double, 
+                                            Point<N,ElemType>*>& myMap, 
+                                            double max)
     {
          if (!current_node)
             return;
         
         if (euclideanDistance(current_node->m_point, key) < max)
-            myMap.insert(make_pair(euclideanDistance(current_node->m_point, key),&current_node->m_point));
+            myMap.insert(std::make_pair(euclideanDistance(current_node->m_point, key),&current_node->m_point));
            
      
         int axis = depth % m_dimension;

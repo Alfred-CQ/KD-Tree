@@ -12,18 +12,18 @@
 
     #include "Point.hpp"
 
-    template <size_t N, typename ElemType>
+    template <std::size_t N, typename ElemType>
     class Node {
         public:
             Point<N,ElemType> m_point;
 
             Node<N,ElemType>* m_nodes[2];
 
-            int m_level = 0;
+            std::size_t m_level = 0;
 
 
             Node();
-            Node(Point<N,ElemType>& point, int level)
+            Node(Point<N,ElemType>& point, std::size_t level)
             {
                 m_point = point;
                 m_level = level; 
